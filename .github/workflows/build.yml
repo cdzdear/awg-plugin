@@ -156,10 +156,10 @@ jobs:
         working-directory: AyuGram4A
         run: |
           chmod +x gradlew
-          ./gradlew assembleAfatDebug --stacktrace --no-daemon
+          ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: AyuGram-AWG-Custom
-          path: AyuGram4A/TMessagesProj/build/outputs/apk/afat/debug/*.apk
+          path: AyuGram4A/TMessagesProj/build/outputs/apk/**/*.apk

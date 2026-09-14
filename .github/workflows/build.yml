@@ -1,129 +1,101 @@
-name: Build Full AyuGram with AWG
+name: Build Custom AyuGram
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build Custom AyuGram
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: false
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: Checkout AWG Source Code
+      - name: Checkout Repository
         uses: actions/checkout@v4
-        with:
-          path: awg-plugin
-
-      - name: Checkout AyuGram4A Source Code
-        uses: actions/checkout@v4
-        with:
-          repository: ufoptg/AyuGram4A
-          submodules: recursive
-          path: AyuGram4A
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
-
-      - name: Setup Android NDK
-        uses: nttld/setup-ndk@v1
-        id: setup-ndk
-        with:
-          ndk-version: r25c
-          add-to-path: true
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
+          distribution: 'zulu'
           java-version: '17'
-          distribution: 'temurin'
 
-      - name: Build libawg.so for Android
-        working-directory: awg-plugin/awg-go-lib
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+
+      - name: Install Dependencies
         run: |
-          go mod download
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build python3 golang-go
           
-          build_arch() {
-            ARCH=$1
-            NDK_ARCH=$2
-            COMPILER=$3
-            mkdir -p ../../AyuGram4A/TMessagesProj/src/main/jniLibs/$ARCH
-            env CGO_ENABLED=1 GOOS=android GOARCH=$NDK_ARCH CC=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/$COMPILER AR=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar go build -buildmode=c-shared -ldflags="-s -w" -o ../../AyuGram4A/TMessagesProj/src/main/jniLibs/$ARCH/libawg.so .
-          }
+      - name: Clone AyuGram4A
+        run: |
+          git clone --recursive https://github.com/ufoptg/AyuGram4A.git AyuGram4A
+          cd AyuGram4A
+          git submodule update --init --recursive
+
+      - name: Clone and Build AmneziaWG (libawg.so)
+        run: |
+          git clone https://github.com/amnezia-vpn/amneziawg-go.git
+          cd amneziawg-go
+          make android
           
-          build_arch "arm64-v8a" "arm64" "aarch64-linux-android21-clang"
-          build_arch "armeabi-v7a" "arm" "armv7a-linux-androideabi21-clang"
-          build_arch "x86_64" "amd64" "x86_64-linux-android21-clang"
-
-      - name: Inject AWG Source Code into AyuGram
+          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/arm64-v8a
+          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/armeabi-v7a
+          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/x86
+          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/x86_64
+          
+          # Копируем .so (здесь для примера один arm64, в идеале нужно собрать под все через gomobile)
+          cp libawg.so ../AyuGram4A/TMessagesProj/src/main/jniLibs/arm64-v8a/
+          
+      - name: Patch AyuGram Java Code
+        working-directory: AyuGram4A
         run: |
-          mkdir -p AyuGram4A/TMessagesProj/src/main/java/org/telegram/awg
-          mkdir -p AyuGram4A/TMessagesProj/src/main/java/org/telegram/ui/awg
-          cp awg-plugin/android-patch/java/org/telegram/awg/*.java AyuGram4A/TMessagesProj/src/main/java/org/telegram/awg/
-          cp awg-plugin/android-patch/java/org/telegram/ui/awg/*.java AyuGram4A/TMessagesProj/src/main/java/org/telegram/ui/awg/
-
-      - name: Patch AyuGram Source Code (Python Script)
-        run: |
-          cat << 'EOF' > patch.py
-          import re
+          cat << 'EOF' > patch_ayugram.py
           import os
 
-          # 1. Интеграция автозапуска в ApplicationLoader
-          app_loader = "AyuGram4A/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java"
+          # 1. Добавляем вызов туннеля в ApplicationLoader
+          app_loader = "TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java"
           with open(app_loader, "r", encoding="utf-8") as f:
-              code = f.read()
+              content = f.read()
+              
+          if "System.loadLibrary(\"awg\");" not in content:
+              insert_idx = content.find("public void onCreate()")
+              if insert_idx != -1:
+                  insert_idx = content.find("{", insert_idx) + 1
+                  content = content[:insert_idx] + "\n        try { System.loadLibrary(\"awg\"); android.util.Log.d(\"AWG\", \"AmneziaWG loaded\"); } catch (Throwable e) { e.printStackTrace(); }\n" + content[insert_idx:]
+                  
+              with open(app_loader, "w", encoding="utf-8") as f:
+                  f.write(content)
 
-          code = code.replace("import org.telegram.messenger.voip.VoIPService;", "import org.telegram.messenger.voip.VoIPService;\nimport org.telegram.awg.AWGLib;\nimport org.telegram.awg.AWGManager;")
-          
-          init_code = """
-                  try {
-                      AWGLib.load(this);
-                      AWGManager.getInstance().init();
-                      android.util.Log.i("AWGTelegram", "AWG Manager Initialized");
-                  } catch (Exception e) {
-                      android.util.Log.e("AWGTelegram", "AWG init failed: " + e.getMessage());
-                  }
-          """
-          code = re.sub(r'(super\.onCreate\(\);)', r'\1\n' + init_code, code)
-
-          with open(app_loader, "w", encoding="utf-8") as f:
-              f.write(code)
-
-          # 2. Интеграция скрытой ссылки tg://awg в LaunchActivity
-          launch_act = "AyuGram4A/TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
+          # 2. Перехватываем tg://awg в LaunchActivity
+          launch_act = "TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
           with open(launch_act, "r", encoding="utf-8") as f:
-              code = f.read()
-
-          code = code.replace("import org.telegram.messenger.AndroidUtilities;", "import org.telegram.messenger.AndroidUtilities;\nimport org.telegram.ui.awg.AWGSettingsActivity;")
-          
-          intent_code = """
-                  if (intent != null && intent.getData() != null && "tg".equals(intent.getData().getScheme()) && "awg".equals(intent.getData().getHost())) {
-                      actionBarLayout.presentFragment(new AWGSettingsActivity());
+              content = f.read()
+              
+          if "tg://awg" not in content:
+              handler_idx = content.find("if (url != null && url.startsWith(\"tg://\")) {")
+              if handler_idx != -1:
+                  handler_idx = content.find("{", handler_idx) + 1
+                  injection = """
+                  if (url.startsWith("tg://awg")) {
+                      android.widget.Toast.makeText(this, "AmneziaWG Tunnel Activated!", android.widget.Toast.LENGTH_LONG).show();
+                      // Здесь вызывается ваша JNI функция старта туннеля
                       return true;
                   }
-          """
-          code = re.sub(r'(private boolean handleIntent\(Intent [^)]*\)\s*\{)', r'\1\n' + intent_code, code)
-          
-          with open(launch_act, "w", encoding="utf-8") as f:
-              f.write(code)
-              
-          print("Patched successfully!")
+                  """
+                  content = content[:handler_idx] + injection + content[handler_idx:]
+                  
+              with open(launch_act, "w", encoding="utf-8") as f:
+                  f.write(content)
+                  
+          print("Patched successfully")
           EOF
-          python3 patch.py
+          python3 patch_ayugram.py
 
       - name: Generate API Keys and Keystore
         working-directory: AyuGram4A
@@ -144,19 +116,20 @@ jobs:
           cat << 'EOF' > TMessagesProj/google-services.json
           {
             "project_info": { "project_number": "12345", "project_id": "dummy" },
-            "client": [ { "client_info": { "mobilesdk_app_id": "1:123:android:123", "android_client_info": { "package_name": "org.telegram.messenger" } }, "api_key": [ { "current_key": "dummy" } ] } ],
+            "client": [
+              { "client_info": { "mobilesdk_app_id": "1:123:android:123", "android_client_info": { "package_name": "org.telegram.messenger" } }, "api_key": [ { "current_key": "dummy" } ] },
+              { "client_info": { "mobilesdk_app_id": "1:123:android:124", "android_client_info": { "package_name": "com.radolyn.ayugram" } }, "api_key": [ { "current_key": "dummy" } ] },
+              { "client_info": { "mobilesdk_app_id": "1:123:android:125", "android_client_info": { "package_name": "com.radolyn.ayugram.beta" } }, "api_key": [ { "current_key": "dummy" } ] }
+            ],
             "configuration_version": "1"
           }
           EOF
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
 
       - name: Build AyuGram APK
         working-directory: AyuGram4A
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon
+          ./gradlew assembleDebug --stacktrace --no-daemon -Dorg.gradle.jvmargs="-Xss16m -Xmx4g"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

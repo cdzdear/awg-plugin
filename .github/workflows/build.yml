@@ -78,13 +78,17 @@ jobs:
           mkdir -p ../awg-plugin/app/src/main/jniLibs/x86_64
           go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/x86_64/libawg.so .
 
-      - name: Create Gradle boilerplate for Plugin
+          - name: Create Gradle boilerplate for Plugin
         working-directory: awg-plugin
         run: |
-          # СНАЧАЛА генерируем wrapper (обходит ошибку несовместимости с Gradle 9.x)
+          # 1. Создаем минимальные пустые файлы, чтобы обмануть Gradle 9
+          echo "include ':app'" > settings.gradle
+          touch build.gradle
+          
+          # 2. Генерируем wrapper (скачает совместимую версию 8.3)
           gradle wrapper --gradle-version 8.3
           
-          # ПОТОМ создаем конфиги сборки
+          # 3. А вот теперь записываем РЕАЛЬНУЮ конфигурацию
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -94,8 +98,6 @@ jobs:
               repositories { google(); mavenCentral() }
           }
           EOF
-          
-          echo "include ':app'" > settings.gradle
           
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true

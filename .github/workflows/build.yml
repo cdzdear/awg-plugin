@@ -138,6 +138,7 @@ jobs:
           EOF
           
           mkdir -p TMessagesProj/config
+          rm -f TMessagesProj/config/extera.jks
           keytool -genkey -v -keystore TMessagesProj/config/extera.jks -keyalg RSA -keysize 2048 -validity 10000 -alias dummy -dname "CN=Ayu, OU=Gram, O=AyuGram, L=City, S=State, C=US" -storepass dummy123 -keypass dummy123
           
           cat << 'EOF' > TMessagesProj/google-services.json

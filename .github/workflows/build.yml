@@ -1,4 +1,4 @@
-name: Build AWG Plugin APK
+name: Build Full AyuGram with AWG
 
 on:
   push:
@@ -7,12 +7,32 @@ on:
 
 jobs:
   build:
-    name: Build Plugin
+    name: Build Custom AyuGram
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: false
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: Checkout AWG Source Code
         uses: actions/checkout@v4
+        with:
+          path: awg-plugin
+
+      - name: Checkout AyuGram4A Source Code
+        uses: actions/checkout@v4
+        with:
+          repository: AyuGram/AyuGram4A
+          submodules: recursive
+          path: AyuGram4A
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -32,120 +52,90 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Copy and Patch core AWG files
-        run: |
-          mkdir -p awg-plugin/app/src/main/java/org/telegram/awg
-          cp android-patch/java/org/telegram/awg/*.java awg-plugin/app/src/main/java/org/telegram/awg/
-          
-          # Вырезаем зависимости от исходников Telegram (ApplicationLoader, SharedConfig и т.д.)
-          sed -i 's/import org.telegram.messenger.*//g' awg-plugin/app/src/main/java/org/telegram/awg/*.java
-          sed -i 's/SharedConfig.reloadConfig();//g' awg-plugin/app/src/main/java/org/telegram/awg/*.java
-          sed -i 's/ApplicationLoader.applicationContext/org.telegram.awg.plugin.AWGPluginService.globalContext/g' awg-plugin/app/src/main/java/org/telegram/awg/*.java
-          
-          # Добавляем глобальный контекст в сервис плагина
-          SERVICE_FILE="awg-plugin/app/src/main/java/org/telegram/awg/plugin/AWGPluginService.java"
-          sed -i '/public class AWGPluginService extends Service/a \    public static android.content.Context globalContext;' "$SERVICE_FILE"
-          sed -i '/super.onCreate();/a \        globalContext = getApplicationContext();' "$SERVICE_FILE"
-
-      - name: Build libawg.so for arm64-v8a
-        working-directory: awg-go-lib
-        env:
-          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
-          CGO_ENABLED: 1
-          GOOS: android
-          GOARCH: arm64
-          CC: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
-          AR: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+      - name: Build libawg.so for Android
+        working-directory: awg-plugin/awg-go-lib
         run: |
           go mod download
-          mkdir -p ../awg-plugin/app/src/main/jniLibs/arm64-v8a
-          go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/arm64-v8a/libawg.so .
+          
+          build_arch() {
+            ARCH=$1
+            NDK_ARCH=$2
+            COMPILER=$3
+            mkdir -p ../../AyuGram4A/TMessagesProj/src/main/jniLibs/$ARCH
+            env CGO_ENABLED=1 GOOS=android GOARCH=$NDK_ARCH CC=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/$COMPILER AR=${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar go build -buildmode=c-shared -ldflags="-s -w" -o ../../AyuGram4A/TMessagesProj/src/main/jniLibs/$ARCH/libawg.so .
+          }
+          
+          build_arch "arm64-v8a" "arm64" "aarch64-linux-android21-clang"
+          build_arch "armeabi-v7a" "arm" "armv7a-linux-androideabi21-clang"
+          build_arch "x86_64" "amd64" "x86_64-linux-android21-clang"
 
-      - name: Build libawg.so for armeabi-v7a
-        working-directory: awg-go-lib
-        env:
-          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
-          CGO_ENABLED: 1
-          GOOS: android
-          GOARCH: arm
-          GOARM: "7"
-          CC: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
-          AR: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+      - name: Inject AWG Source Code into AyuGram
         run: |
-          mkdir -p ../awg-plugin/app/src/main/jniLibs/armeabi-v7a
-          go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/armeabi-v7a/libawg.so .
+          mkdir -p AyuGram4A/TMessagesProj/src/main/java/org/telegram/awg
+          mkdir -p AyuGram4A/TMessagesProj/src/main/java/org/telegram/ui/awg
+          cp awg-plugin/android-patch/java/org/telegram/awg/*.java AyuGram4A/TMessagesProj/src/main/java/org/telegram/awg/
+          cp awg-plugin/android-patch/java/org/telegram/ui/awg/*.java AyuGram4A/TMessagesProj/src/main/java/org/telegram/ui/awg/
 
-      - name: Build libawg.so for x86_64
-        working-directory: awg-go-lib
-        env:
-          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
-          CGO_ENABLED: 1
-          GOOS: android
-          GOARCH: amd64
-          CC: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang
-          AR: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+      - name: Patch AyuGram Source Code (Python Script)
         run: |
-          mkdir -p ../awg-plugin/app/src/main/jniLibs/x86_64
-          go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/x86_64/libawg.so .
+          cat << 'EOF' > patch.py
+          import re
+          import os
 
-      - name: Setup Gradle 8.3
+          # 1. Интеграция автозапуска в ApplicationLoader
+          app_loader = "AyuGram4A/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java"
+          with open(app_loader, "r", encoding="utf-8") as f:
+              code = f.read()
+
+          code = code.replace("import org.telegram.messenger.voip.VoIPService;", "import org.telegram.messenger.voip.VoIPService;\nimport org.telegram.awg.AWGLib;\nimport org.telegram.awg.AWGManager;")
+          
+          init_code = """
+                  try {
+                      AWGLib.load(this);
+                      AWGManager.getInstance().init();
+                      android.util.Log.i("AWGTelegram", "AWG Manager Initialized");
+                  } catch (Exception e) {
+                      android.util.Log.e("AWGTelegram", "AWG init failed: " + e.getMessage());
+                  }
+          """
+          code = re.sub(r'(super\.onCreate\(\);)', r'\1\n' + init_code, code)
+
+          with open(app_loader, "w", encoding="utf-8") as f:
+              f.write(code)
+
+          # 2. Интеграция скрытой ссылки tg://awg в LaunchActivity
+          launch_act = "AyuGram4A/TMessagesProj/src/main/java/org/telegram/ui/LaunchActivity.java"
+          with open(launch_act, "r", encoding="utf-8") as f:
+              code = f.read()
+
+          code = code.replace("import org.telegram.messenger.AndroidUtilities;", "import org.telegram.messenger.AndroidUtilities;\nimport org.telegram.ui.awg.AWGSettingsActivity;")
+          
+          intent_code = """
+                  if (intent != null && intent.getData() != null && "tg".equals(intent.getData().getScheme()) && "awg".equals(intent.getData().getHost())) {
+                      actionBarLayout.presentFragment(new AWGSettingsActivity());
+                      return true;
+                  }
+          """
+          code = re.sub(r'(private boolean handleIntent\(Intent [^)]*\)\s*\{)', r'\1\n' + intent_code, code)
+          
+          with open(launch_act, "w", encoding="utf-8") as f:
+              f.write(code)
+              
+          print("Patched successfully!")
+          EOF
+          python3 patch.py
+
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.3'
 
-      - name: Create Gradle boilerplate for Plugin
-        working-directory: awg-plugin
+      - name: Build AyuGram APK
+        working-directory: AyuGram4A
         run: |
-          cat << 'EOF' > build.gradle
-          buildscript {
-              repositories { google(); mavenCentral() }
-              dependencies { classpath 'com.android.tools.build:gradle:8.1.1' }
-          }
-          allprojects {
-              repositories { google(); mavenCentral() }
-          }
-          EOF
-          
-          echo "include ':app'" > settings.gradle
-          
-          cat << 'EOF' > gradle.properties
-          android.useAndroidX=true
-          android.enableJetifier=true
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          EOF
-          
-          mkdir -p app/src/main/res/values
-          mkdir -p app/src/main/res/drawable
-          
-          cat << 'EOF' > app/src/main/res/values/strings.xml
-          <resources>
-              <string name="app_name">AWG Plugin</string>
-          </resources>
-          EOF
-          
-          cat << 'EOF' > app/src/main/res/values/styles.xml
-          <resources>
-              <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
-                  <item name="colorPrimary">#0088cc</item>
-                  <item name="colorPrimaryDark">#005580</item>
-                  <item name="colorAccent">#0088cc</item>
-              </style>
-          </resources>
-          EOF
-          
-          cat << 'EOF' > app/src/main/res/drawable/ic_launcher.xml
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#0088cc" android:pathData="M0,0h108v108h-108z"/>
-          </vector>
-          EOF
-
-      - name: Build APK
-        working-directory: awg-plugin
-        run: gradle assembleDebug
+          chmod +x gradlew
+          ./gradlew assembleAfatDebug --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AWG-Plugin-APK
-          path: awg-plugin/app/build/outputs/apk/debug/*.apk
+          name: AyuGram-AWG-Custom
+          path: AyuGram4A/TMessagesProj/build/outputs/apk/afat/debug/*.apk

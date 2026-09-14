@@ -77,7 +77,8 @@ jobs:
         run: |
           mkdir -p ../awg-plugin/app/src/main/jniLibs/x86_64
           go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/x86_64/libawg.so .
-        - name: Setup Gradle 8.3
+
+      - name: Setup Gradle 8.3
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.3'
@@ -105,7 +106,6 @@ jobs:
 
       - name: Build APK
         working-directory: awg-plugin
-        # Теперь мы используем команду gradle (которую установил экшен), а не gradlew
         run: gradle assembleDebug
 
       - name: Upload APK

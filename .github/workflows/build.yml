@@ -125,6 +125,29 @@ jobs:
           EOF
           python3 patch.py
 
+      - name: Generate API Keys and Keystore
+        working-directory: AyuGram4A
+        run: |
+          cat << 'EOF' > API_KEYS
+          APP_ID = 2040
+          APP_HASH = "b18441a1ff607e10a989891a5462e627"
+          MAPS_V2_API = "dummy_maps_key"
+          SIGNING_KEY_PASSWORD = "dummy"
+          SIGNING_KEY_ALIAS = "dummy"
+          SIGNING_KEY_STORE_PASSWORD = "dummy"
+          EOF
+          
+          mkdir -p TMessagesProj/config
+          keytool -genkey -v -keystore TMessagesProj/config/extera.jks -keyalg RSA -keysize 2048 -validity 10000 -alias dummy -dname "CN=Ayu, OU=Gram, O=AyuGram, L=City, S=State, C=US" -storepass dummy -keypass dummy
+          
+          cat << 'EOF' > TMessagesProj/google-services.json
+          {
+            "project_info": { "project_number": "12345", "project_id": "dummy" },
+            "client": [ { "client_info": { "mobilesdk_app_id": "1:123:android:123", "android_client_info": { "package_name": "org.telegram.messenger" } }, "api_key": [ { "current_key": "dummy" } ] } ],
+            "configuration_version": "1"
+          }
+          EOF
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 

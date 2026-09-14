@@ -1,0 +1,24 @@
+--- a/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
++++ b/TMessagesProj/src/main/java/org/telegram/messenger/ApplicationLoader.java
+@@ -XX,XX +XX,XX @@
+ import org.telegram.messenger.voip.VoIPService;
++import org.telegram.awg.AWGLib;
++import org.telegram.awg.AWGManager;
+
+ public class ApplicationLoader extends Application {
+ 
+     @Override
+     public void onCreate() {
+         super.onCreate();
+         
++        // Initialize built-in AmneziaWG tunnel (no VpnService used)
++        try {
++            AWGLib.load(this);
++            AWGManager.getInstance().init();
++        } catch (Exception e) {
++            android.util.Log.e("AWGTelegram", "AWG init failed: " + e.getMessage());
++        }
++        
+         // ... existing code ...
+     }
+ }

@@ -1,0 +1,29 @@
+--- a/TMessagesProj/src/main/java/org/telegram/ui/SettingsActivity.java
++++ b/TMessagesProj/src/main/java/org/telegram/ui/SettingsActivity.java
+@@ -XX,XX +XX,XX @@
++import org.telegram.awg.AWGManager;
++import org.telegram.ui.awg.AWGSettingsActivity;
+
+ // In the rows enum / row counts, add:
++    private int awgRow;
+
+ // In createRows() or equivalent:
++    awgRow = rowCount++;
+
+ // In onItemClick():
++    if (position == awgRow) {
++        presentFragment(new AWGSettingsActivity());
++        return;
++    }
+
+ // In getView() for the list adapter, add the cell for awgRow:
++    if (position == awgRow) {
++        TextCell textCell = (TextCell) view;
++        AWGManager mgr = AWGManager.getInstance();
++        String subtitle = mgr.isRunning() ? "Активен" : "Выключен";
++        textCell.setTextAndValue("Встроенный AWG VPN", subtitle, false);
++        // Show green dot when active
++        textCell.setTextColor(mgr.isRunning()
++            ? 0xFF4CAF50
++            : Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
++    }

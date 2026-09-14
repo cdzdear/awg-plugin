@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0D1117"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Header -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="AWG Tunnel Plugin"
+            android:textColor="#58A6FF"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="для AyuGram / Exteragram"
+            android:textColor="#8B949E"
+            android:textSize="13sp"
+            android:gravity="center"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Status Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#161B22"
+            android:padding="16dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/status_label"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="⚫ Выключен"
+                    android:textColor="#C9D1D9"
+                    android:textSize="15sp" />
+
+                <Switch
+                    android:id="@+id/tunnel_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:thumbTint="#58A6FF"
+                    android:trackTint="#21262D" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/key_status_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#8B949E"
+                android:textSize="12sp"
+                android:layout_marginTop="6dp" />
+
+            <TextView
+                android:id="@+id/stats_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text=""
+                android:textColor="#8B949E"
+                android:textSize="11sp"
+                android:fontFamily="monospace"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+
+        <!-- Divider -->
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#21262D" android:layout_marginVertical="12dp" />
+
+        <!-- AWG Config -->
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="КОНФИГУРАЦИЯ AWG" android:textColor="#58A6FF"
+            android:textSize="12sp" android:textStyle="bold" android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/config_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minLines="6"
+            android:maxLines="20"
+            android:hint="[Interface]&#10;PrivateKey = ...&#10;&#10;[Peer]&#10;PublicKey = ..."
+            android:textColorHint="#484F58"
+            android:textColor="#C9D1D9"
+            android:background="#0D1117"
+            android:padding="12dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:inputType="textMultiLine"
+            android:gravity="top" />
+
+        <!-- Key Rotation Server -->
+        <View android:layout_width="match_parent" android:layout_height="1dp"
+            android:background="#21262D" android:layout_marginVertical="12dp" />
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="СЕРВЕР РОТАЦИИ КЛЮЧЕЙ" android:textColor="#58A6FF"
+            android:textSize="12sp" android:textStyle="bold" android:layout_marginBottom="8dp" />
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="URL сервера"
+            android:textColor="#8B949E" android:textSize="12sp" android:layout_marginBottom="4dp" />
+        <EditText
+            android:id="@+id/server_url_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="https://your-server:8443"
+            android:textColorHint="#484F58"
+            android:textColor="#C9D1D9"
+            android:background="#161B22"
+            android:padding="10dp"
+            android:textSize="13sp"
+            android:inputType="textUri"
+            android:layout_marginBottom="8dp" />
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Client ID"
+            android:textColor="#8B949E" android:textSize="12sp" android:layout_marginBottom="4dp" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginBottom="8dp">
+            <EditText
+                android:id="@+id/client_id_input"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="uuid-xxxx-xxxx"
+                android:textColorHint="#484F58"
+                android:textColor="#C9D1D9"
+                android:background="#161B22"
+                android:padding="10dp"
+                android:textSize="12sp"
+                android:fontFamily="monospace" />
+            <Button
+                android:id="@+id/generate_id_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Gen"
+                android:textColor="#58A6FF"
+                android:background="@null"
+                android:layout_marginStart="4dp" />
+        </LinearLayout>
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Shared Secret (base64 AES-256)"
+            android:textColor="#8B949E" android:textSize="12sp" android:layout_marginBottom="4dp" />
+        <EditText
+            android:id="@+id/shared_secret_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="base64 32-байтный ключ"
+            android:textColorHint="#484F58"
+            android:textColor="#C9D1D9"
+            android:background="#161B22"
+            android:padding="10dp"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:inputType="textPassword"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Buttons -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/apply_button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Сохранить"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#238636"
+                android:layout_marginEnd="8dp" />
+
+            <Button
+                android:id="@+id/check_key_button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:text="Проверить ключ"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="#1F6FEB" />
+        </LinearLayout>
+
+        <!-- Info box -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#161B22"
+            android:padding="12dp"
+            android:layout_marginTop="16dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="ℹ️ Как это работает"
+                android:textColor="#58A6FF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#8B949E"
+                android:textSize="12sp"
+                android:lineSpacingMultiplier="1.4"
+                android:text="1. Плагин запускает AWG туннель в userspace (без системного VPN)\n2. SOCKS5 прокси поднимается на 127.0.0.1:PORT\n3. AyuGram автоматически получает настройки прокси\n4. Каждые 6 часов проверяется актуальность ключа\n5. При необходимости — новый конфиг получается зашифрованным и применяется без перезапуска\n\n⚡ Нет иконки замка. Нет конфликтов с VPN. Работает без root." />
+        </LinearLayout>
+
+        <View android:layout_width="match_parent" android:layout_height="24dp" />
+    </LinearLayout>
+</ScrollView>

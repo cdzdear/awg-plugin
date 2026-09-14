@@ -1,0 +1,1 @@
+{"listen_addr":":18443","tls_cert":"","tls_key":"","master_secret":"dGVzdHNlY3JldHRlc3RzZWNyZXR0ZXN0c2Vj","wg_configs_dir":"./configs","max_key_age_days":30}

@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'org.telegram.awg.plugin'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "org.telegram.awg.plugin"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // Include pre-built AWG native libraries
+    sourceSets {
+        main {
+            jniLibs.srcDirs = ['src/main/jniLibs']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    // Package AWGLib and AWGManager from the main fork
+    // These files are shared between the plugin and the fork build
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    // No VPN libs needed — using userspace AWG via JNI
+}

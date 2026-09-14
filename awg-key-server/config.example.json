@@ -1,0 +1,8 @@
+{
+  "listen_addr": ":8443",
+  "tls_cert": "/etc/awg-server/cert.pem",
+  "tls_key": "/etc/awg-server/key.pem",
+  "master_secret": "REPLACE_WITH_BASE64_32_BYTES_RANDOM",
+  "wg_configs_dir": "/etc/awg-server/configs",
+  "max_key_age_days": 30
+}

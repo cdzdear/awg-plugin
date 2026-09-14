@@ -30,7 +30,7 @@ jobs:
       - name: Checkout AyuGram4A Source Code
         uses: actions/checkout@v4
         with:
-          repository: AyuGram/AyuGram4A
+          repository: ufoptg/AyuGram4A
           submodules: recursive
           path: AyuGram4A
 

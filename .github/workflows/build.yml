@@ -77,15 +77,14 @@ jobs:
         run: |
           mkdir -p ../awg-plugin/app/src/main/jniLibs/x86_64
           go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/x86_64/libawg.so .
+        - name: Setup Gradle 8.3
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.3'
 
       - name: Create Gradle boilerplate for Plugin
         working-directory: awg-plugin
         run: |
-          echo "include ':app'" > settings.gradle
-          touch build.gradle
-          
-          gradle wrapper --gradle-version 8.3
-          
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -96,6 +95,8 @@ jobs:
           }
           EOF
           
+          echo "include ':app'" > settings.gradle
+          
           cat << 'EOF' > gradle.properties
           android.useAndroidX=true
           android.enableJetifier=true
@@ -104,9 +105,8 @@ jobs:
 
       - name: Build APK
         working-directory: awg-plugin
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        # Теперь мы используем команду gradle (которую установил экшен), а не gradlew
+        run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

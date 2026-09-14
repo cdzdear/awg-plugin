@@ -87,12 +87,12 @@ jobs:
         working-directory: AyuGram4A
         run: |
           cat << 'EOF' > API_KEYS
-          APP_ID = 2040
-          APP_HASH = "b18441a1ff607e10a989891a5462e627"
-          MAPS_V2_API = "dummy_maps_key"
-          SIGNING_KEY_PASSWORD = "dummy123"
-          SIGNING_KEY_ALIAS = "dummy"
-          SIGNING_KEY_STORE_PASSWORD = "dummy123"
+          APP_ID=2040
+          APP_HASH="b18441a1ff607e10a989891a5462e627"
+          MAPS_V2_API="dummy_maps_key"
+          SIGNING_KEY_PASSWORD=dummy123
+          SIGNING_KEY_ALIAS=dummy
+          SIGNING_KEY_STORE_PASSWORD=dummy123
           EOF
           
           mkdir -p TMessagesProj/config

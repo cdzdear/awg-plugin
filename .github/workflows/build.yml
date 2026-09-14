@@ -1,0 +1,115 @@
+name: Build AWG Plugin APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Plugin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Setup Android NDK
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r25c
+          add-to-path: true
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Copy core AWG files into plugin
+        run: |
+          # Копируем общие классы туннеля в проект плагина
+          mkdir -p awg-plugin/app/src/main/java/org/telegram/awg
+          cp android-patch/java/org/telegram/awg/*.java awg-plugin/app/src/main/java/org/telegram/awg/
+
+      - name: Build libawg.so for arm64-v8a
+        working-directory: awg-go-lib
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          CGO_ENABLED: 1
+          GOOS: android
+          GOARCH: arm64
+          CC: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang
+          AR: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+        run: |
+          go mod download
+          mkdir -p ../awg-plugin/app/src/main/jniLibs/arm64-v8a
+          go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/arm64-v8a/libawg.so .
+
+      - name: Build libawg.so for armeabi-v7a
+        working-directory: awg-go-lib
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          CGO_ENABLED: 1
+          GOOS: android
+          GOARCH: arm
+          GOARM: "7"
+          CC: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang
+          AR: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+        run: |
+          mkdir -p ../awg-plugin/app/src/main/jniLibs/armeabi-v7a
+          go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/armeabi-v7a/libawg.so .
+
+      - name: Build libawg.so for x86_64
+        working-directory: awg-go-lib
+        env:
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+          CGO_ENABLED: 1
+          GOOS: android
+          GOARCH: amd64
+          CC: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang
+          AR: ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar
+        run: |
+          mkdir -p ../awg-plugin/app/src/main/jniLibs/x86_64
+          go build -buildmode=c-shared -ldflags="-s -w" -o ../awg-plugin/app/src/main/jniLibs/x86_64/libawg.so .
+
+      - name: Create Gradle boilerplate for Plugin
+        working-directory: awg-plugin
+        run: |
+          cat << 'EOF' > build.gradle
+          buildscript {
+              repositories { google(); mavenCentral() }
+              dependencies { classpath 'com.android.tools.build:gradle:8.1.1' }
+          }
+          allprojects {
+              repositories { google(); mavenCentral() }
+          }
+          EOF
+          
+          echo "include ':app'" > settings.gradle
+          
+          cat << 'EOF' > gradle.properties
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
+          
+          gradle wrapper --gradle-version 8.3
+
+      - name: Build APK
+        working-directory: awg-plugin
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AWG-Plugin-APK
+          path: awg-plugin/app/build/outputs/apk/debug/*.apk

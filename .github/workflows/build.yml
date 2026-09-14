@@ -34,7 +34,6 @@ jobs:
 
       - name: Copy core AWG files into plugin
         run: |
-          # Копируем общие классы туннеля в проект плагина
           mkdir -p awg-plugin/app/src/main/java/org/telegram/awg
           cp android-patch/java/org/telegram/awg/*.java awg-plugin/app/src/main/java/org/telegram/awg/
 
@@ -82,6 +81,10 @@ jobs:
       - name: Create Gradle boilerplate for Plugin
         working-directory: awg-plugin
         run: |
+          # СНАЧАЛА генерируем wrapper (обходит ошибку несовместимости с Gradle 9.x)
+          gradle wrapper --gradle-version 8.3
+          
+          # ПОТОМ создаем конфиги сборки
           cat << 'EOF' > build.gradle
           buildscript {
               repositories { google(); mavenCentral() }
@@ -99,8 +102,6 @@ jobs:
           android.enableJetifier=true
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
-          
-          gradle wrapper --gradle-version 8.3
 
       - name: Build APK
         working-directory: awg-plugin

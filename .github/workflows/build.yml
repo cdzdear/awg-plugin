@@ -37,20 +37,6 @@ jobs:
           git clone --recursive https://github.com/ufoptg/AyuGram4A.git AyuGram4A
           cd AyuGram4A
           git submodule update --init --recursive
-
-      - name: Clone and Build AmneziaWG (libawg.so)
-        run: |
-          git clone https://github.com/amnezia-vpn/amneziawg-go.git
-          cd amneziawg-go
-          make android
-          
-          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/arm64-v8a
-          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/armeabi-v7a
-          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/x86
-          mkdir -p ../AyuGram4A/TMessagesProj/src/main/jniLibs/x86_64
-          
-          # Копируем .so (здесь для примера один arm64, в идеале нужно собрать под все через gomobile)
-          cp libawg.so ../AyuGram4A/TMessagesProj/src/main/jniLibs/arm64-v8a/
           
       - name: Patch AyuGram Java Code
         working-directory: AyuGram4A

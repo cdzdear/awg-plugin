@@ -132,13 +132,13 @@ jobs:
           APP_ID = 2040
           APP_HASH = "b18441a1ff607e10a989891a5462e627"
           MAPS_V2_API = "dummy_maps_key"
-          SIGNING_KEY_PASSWORD = "dummy"
+          SIGNING_KEY_PASSWORD = "dummy123"
           SIGNING_KEY_ALIAS = "dummy"
-          SIGNING_KEY_STORE_PASSWORD = "dummy"
+          SIGNING_KEY_STORE_PASSWORD = "dummy123"
           EOF
           
           mkdir -p TMessagesProj/config
-          keytool -genkey -v -keystore TMessagesProj/config/extera.jks -keyalg RSA -keysize 2048 -validity 10000 -alias dummy -dname "CN=Ayu, OU=Gram, O=AyuGram, L=City, S=State, C=US" -storepass dummy -keypass dummy
+          keytool -genkey -v -keystore TMessagesProj/config/extera.jks -keyalg RSA -keysize 2048 -validity 10000 -alias dummy -dname "CN=Ayu, OU=Gram, O=AyuGram, L=City, S=State, C=US" -storepass dummy123 -keypass dummy123
           
           cat << 'EOF' > TMessagesProj/google-services.json
           {

@@ -115,7 +115,7 @@ jobs:
         working-directory: AyuGram4A
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace --no-daemon -Dorg.gradle.jvmargs="-Xss16m -Xmx4g"
+          ./gradlew assembleRelease --stacktrace --no-daemon -Dorg.gradle.jvmargs="-Xss16m -Xmx4g"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
